@@ -54,6 +54,29 @@ You will need to acquire the following keys and map them inside `.env.local`:
 +-------------------+                       +-------------------+
 ```
 
+## Vercel Deployment Instructions
+
+Deploying GenStudio to Vercel is quick and simple. Follow these steps:
+
+1. **Fork the Repository**
+   - Fork this repository to your own GitHub/GitLab account.
+   
+2. **Setup Supabase Database**
+   - Create a free project on [Supabase](https://supabase.com).
+   - Go to the **SQL Editor** in your Supabase project dashboard.
+   - Click "New Query", paste the contents of `supabase/schema.sql`, and click **Run** to set up the `generations` table.
+
+3. **Deploy on Vercel**
+   - Log in to your [Vercel Dashboard](https://vercel.com).
+   - Click **Add New** -> **Project** and import your forked repository.
+   
+4. **Configure Environment Variables**
+   - In the Vercel project configuration page, add the following Environment Variables:
+     - `NEXT_PUBLIC_SUPABASE_URL` (Your Supabase project URL)
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Your Supabase anon API key)
+     - `FAL_KEY` (Your fal.ai API key)
+   - Click **Deploy** and your app will be live in seconds!
+
 ## Future Technical Planning
 
 Read the internal technical specification for the planned custom model training capabilities here: [LORA_PLAN.md](./LORA_PLAN.md).
