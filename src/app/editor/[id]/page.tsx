@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState, use } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGeneration } from '@/lib/gallery';
 import { Generation } from '@/types/generation';
 import { toast } from 'sonner';
 import { Loader2, Type, Download, ChevronLeft, Trash2 } from 'lucide-react';
-import * as fabric from 'fabric';
+import { Canvas, FabricImage, IText } from 'fabric';
 import Link from 'next/link';
 
-export default function EditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function EditorPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   
   const [generation, setGeneration] = useState<Generation | null>(null);
@@ -18,7 +18,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<Canvas | null>(null);
   
   // Tools state
   const [textInput, setTextInput] = useState('');
@@ -31,7 +31,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
     async function loadData() {
       try {
         const data = await getGeneration(id);
-        if (data.status !== 'done' || !data.image_url) {
+        if (!data.image_url) {
           toast.error('Image not ready for editing');
           router.push('/');
           return;
@@ -51,7 +51,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
     if (!generation?.image_url || !canvasRef.current || !containerRef.current) return;
 
     // Initialize Fabric canvas
-    const canvas = new fabric.Canvas(canvasRef.current, {
+    const canvas = new Canvas(canvasRef.current, {
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
       backgroundColor: '#ffffff',
@@ -61,38 +61,33 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
 
     const loadFabricImage = async () => {
       try {
-        const imgElement = document.createElement('img');
-        imgElement.crossOrigin = 'anonymous';
-        imgElement.src = generation.image_url!;
+        const img = await FabricImage.fromURL(generation.image_url!, {
+          crossOrigin: 'anonymous',
+        });
         
-        imgElement.onload = () => {
-          const FabricImage = ((fabric as unknown as { FabricImage?: new (el: HTMLImageElement) => fabric.Image }).FabricImage || (fabric as unknown as { Image?: new (el: HTMLImageElement) => fabric.Image }).Image) as new (el: HTMLImageElement) => fabric.Image;
-          const img = new FabricImage(imgElement);
-          
-          // Calculate scale to fit canvas
-          const canvasWidth = canvas.width || 800;
-          const canvasHeight = canvas.height || 600;
-          
-          // scale to fit within bounds
-          const scale = Math.min(
-            (canvasWidth * 0.95) / img.width!,
-            (canvasHeight * 0.95) / img.height!
-          );
-          
-          img.scale(scale);
-          
-          // Center the image
-          img.set({
-            left: (canvasWidth - img.width! * scale) / 2,
-            top: (canvasHeight - img.height! * scale) / 2,
-            selectable: false,
-            evented: false,
-          });
-          
-          canvas.add(img);
-          canvas.sendObjectToBack(img);
-          canvas.renderAll();
-        };
+        // Calculate scale to fit canvas
+        const canvasWidth = canvas.width || 800;
+        const canvasHeight = canvas.height || 600;
+        
+        // scale to fit within bounds
+        const scale = Math.min(
+          (canvasWidth * 0.95) / img.width!,
+          (canvasHeight * 0.95) / img.height!
+        );
+        
+        img.scale(scale);
+        
+        // Center the image
+        img.set({
+          left: (canvasWidth - img.width! * scale) / 2,
+          top: (canvasHeight - img.height! * scale) / 2,
+          selectable: false,
+          evented: false,
+        });
+        
+        canvas.add(img);
+        canvas.sendObjectToBack(img);
+        canvas.renderAll();
       } catch {
         toast.error('Failed to load image for editing');
       }
@@ -146,8 +141,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
 
     const canvas = fabricCanvasRef.current;
     
-    const FabricText = ((fabric as unknown as { IText?: new (t: string, opts?: Record<string, unknown>) => fabric.IText }).IText || (fabric as unknown as { Text?: new (t: string, opts?: Record<string, unknown>) => fabric.Text }).Text) as new (t: string, opts?: Record<string, unknown>) => fabric.IText;
-    const text = new FabricText(textInput, {
+    const text = new IText(textInput, {
       left: (canvas.width || 800) / 2,
       top: (canvas.height || 600) / 2,
       fontFamily: 'system-ui, sans-serif',
