@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/sonner";
+import Link from "next/link";
 
 export default function RootLayout({
   children,
@@ -32,9 +33,26 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-50 min-h-screen`}
       >
-        {children}
+        <nav className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link href="/" className="font-extrabold text-2xl tracking-tight text-white flex items-center gap-2">
+                <span className="bg-white text-black px-2 py-0.5 rounded-md">Gen</span>Studio
+              </Link>
+              <div className="flex items-center gap-6 text-sm font-semibold text-zinc-400">
+                <Link href="/" className="hover:text-white transition-colors">
+                  Generate
+                </Link>
+                <Link href="/gallery" className="hover:text-white transition-colors">
+                  Gallery
+                </Link>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <main>{children}</main>
         <Toaster />
       </body>
     </html>
