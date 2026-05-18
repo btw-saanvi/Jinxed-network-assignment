@@ -1,101 +1,167 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useGenerateStore } from '@/store/generateStore';
+import { createGeneration } from '@/lib/gallery';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+export default function GeneratePage() {
+  const {
+    prompt,
+    model,
+    status,
+    resultImage,
+    setPrompt,
+    setModel,
+    setStatus,
+    setResultImage,
+  } = useGenerateStore();
+
+  const isGenerating = status === 'pending';
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      toast.error('Please enter a prompt to generate an image.');
+      return;
+    }
+
+    try {
+      setStatus('pending');
+      setResultImage(null);
+
+      // 1. Call createGeneration() to insert pending DB row
+      const generationId = await createGeneration(prompt, model);
+
+      // 2. POST to /api/generate
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model, generationId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate image');
+      }
+
+      // 3. Handle the response
+      setResultImage(data.imageUrl);
+      setStatus('done');
+      toast.success('Image generated successfully!');
+    } catch (error: any) {
+      console.error(error);
+      setStatus('failed');
+      toast.error(error.message || 'An unexpected error occurred.');
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-zinc-950 text-zinc-50 p-6 md:p-12 flex flex-col items-center">
+      <div className="w-full max-w-3xl space-y-8">
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold tracking-tight">Generate Image</h1>
+          <p className="text-zinc-400">
+            Create stunning images from text prompts using advanced AI models.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+          <div className="space-y-2">
+            <label htmlFor="prompt" className="text-sm font-medium">
+              Prompt
+            </label>
+            <Textarea
+              id="prompt"
+              placeholder="Describe the image you want to generate..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="min-h-[120px] resize-none bg-zinc-950 border-zinc-800 focus-visible:ring-zinc-700 placeholder:text-zinc-600"
+              disabled={isGenerating}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 space-y-2">
+              <label htmlFor="model" className="text-sm font-medium">
+                Model
+              </label>
+              <Select
+                value={model}
+                onValueChange={setModel}
+                disabled={isGenerating}
+              >
+                <SelectTrigger id="model" className="bg-zinc-950 border-zinc-800 focus:ring-zinc-700">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-50">
+                  <SelectItem value="fal-ai/flux/schnell">Schnell · Fast</SelectItem>
+                  <SelectItem value="fal-ai/flux/dev">Dev · Quality</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="w-full sm:w-auto min-w-[140px] bg-zinc-50 text-zinc-950 hover:bg-zinc-200 font-semibold"
+              >
+                {isGenerating ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-zinc-950"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  'Generate'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {status === 'done' && resultImage && (
+          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl">
+              <img
+                src={resultImage}
+                alt={prompt}
+                className="w-full h-auto object-cover max-h-[70vh]"
+              />
+              <div className="p-4 bg-zinc-900 border-t border-zinc-800">
+                <p className="text-zinc-300 text-sm font-medium">"{prompt}"</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
