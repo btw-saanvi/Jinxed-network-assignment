@@ -11,3 +11,28 @@ create table generations (
 
 create index on generations(created_at desc);
 create index on generations(status);
+
+-- Enable Row-Level Security (RLS)
+alter table generations enable row level security;
+
+-- Allow anonymous inserts so images can be generated and saved
+create policy "Allow public insert"
+on generations
+for insert
+to anon
+with check (true);
+
+-- Allow anonymous reads so users can view the gallery
+create policy "Allow public select"
+on generations
+for select
+to anon
+using (true);
+
+-- Allow anonymous deletes so users can delete their generations from the gallery
+create policy "Allow public delete"
+on generations
+for delete
+to anon
+using (true);
+
