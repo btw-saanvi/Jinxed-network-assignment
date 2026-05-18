@@ -14,38 +14,59 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
 function GenerateForm() {
   const searchParams = useSearchParams();
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const {
     prompt,
     model,
     status,
     resultImage,
     tweakOf,
+    imageSize,
+    guidanceScale,
+    numInferenceSteps,
+    negativePrompt,
     setPrompt,
     setModel,
     setStatus,
     setResultImage,
     setTweakOf,
+    setImageSize,
+    setGuidanceScale,
+    setNumInferenceSteps,
+    setNegativePrompt,
   } = useGenerateStore();
 
   useEffect(() => {
     const urlPrompt = searchParams.get('prompt');
     const urlModel = searchParams.get('model');
     const urlTweakOf = searchParams.get('tweakOf');
+    const urlSettingsStr = searchParams.get('settings');
 
     if (urlPrompt) setPrompt(urlPrompt);
     if (urlModel) setModel(urlModel);
     if (urlTweakOf) setTweakOf(urlTweakOf);
-  }, [searchParams, setPrompt, setModel, setTweakOf]);
+    
+    if (urlSettingsStr) {
+      try {
+        const urlSettings = JSON.parse(decodeURIComponent(urlSettingsStr));
+        if (urlSettings.image_size) setImageSize(urlSettings.image_size);
+        if (urlSettings.guidance_scale) setGuidanceScale(urlSettings.guidance_scale);
+        if (urlSettings.num_inference_steps) setNumInferenceSteps(urlSettings.num_inference_steps);
+        if (urlSettings.negative_prompt) setNegativePrompt(urlSettings.negative_prompt);
+      } catch (e) {
+        console.error('Failed to parse settings from URL');
+      }
+    }
+  }, [searchParams, setPrompt, setModel, setTweakOf, setImageSize, setGuidanceScale, setNumInferenceSteps, setNegativePrompt]);
 
   const isGenerating = status === 'pending';
 
   const handleClearTweak = () => {
     setTweakOf(null);
-    // clear the search params from the url
     window.history.replaceState({}, '', '/');
   };
 
@@ -59,14 +80,25 @@ function GenerateForm() {
       setStatus('pending');
       setResultImage(null);
 
-      // 1. Call createGeneration() to insert pending DB row
-      const generationId = await createGeneration(prompt, model, {}, tweakOf);
+      const settings: Record<string, any> = {
+        image_size: imageSize,
+        guidance_scale: guidanceScale,
+      };
 
-      // 2. POST to /api/generate
+      if (negativePrompt.trim()) {
+        settings.negative_prompt = negativePrompt.trim();
+      }
+
+      if (model === 'fal-ai/flux/dev') {
+        settings.num_inference_steps = numInferenceSteps;
+      }
+
+      const generationId = await createGeneration(prompt, model, settings, tweakOf);
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model, generationId }),
+        body: JSON.stringify({ prompt, model, generationId, settings }),
       });
 
       const data = await response.json();
@@ -75,13 +107,9 @@ function GenerateForm() {
         throw new Error(data.error || 'Failed to generate image');
       }
 
-      // 3. Handle the response
       setResultImage(data.imageUrl);
       setStatus('done');
       toast.success('Image generated successfully!');
-      
-      // Optionally clear tweak status on success if desired, but we can leave it
-      // so users can repeatedly tweak the same original.
     } catch (error: any) {
       console.error(error);
       setStatus('failed');
@@ -115,7 +143,7 @@ function GenerateForm() {
           </div>
         )}
 
-        <div className="space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
+        <div className="space-y-6 bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
           <div className="space-y-2">
             <label htmlFor="prompt" className="text-sm font-medium">
               Prompt
@@ -166,6 +194,83 @@ function GenerateForm() {
                 )}
               </Button>
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-zinc-800/50">
+            <button
+              onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+              className="flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
+            >
+              {isAdvancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Advanced Settings
+            </button>
+
+            {isAdvancedOpen && (
+              <div className="mt-4 space-y-6 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Image Size</label>
+                    <Select
+                      value={imageSize}
+                      onValueChange={setImageSize}
+                      disabled={isGenerating}
+                    >
+                      <SelectTrigger className="bg-zinc-950 border-zinc-800 focus:ring-zinc-700">
+                        <SelectValue placeholder="Select size" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-50">
+                        <SelectItem value="square_hd">Square HD (1:1)</SelectItem>
+                        <SelectItem value="landscape_4_3">Landscape (4:3)</SelectItem>
+                        <SelectItem value="portrait_4_3">Portrait (3:4)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-zinc-300">Prompt Adherence</label>
+                      <span className="text-xs text-zinc-500 font-mono">{guidanceScale}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="1" max="20" step="0.1" 
+                      value={guidanceScale} 
+                      onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                      disabled={isGenerating}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                  
+                  {model === 'fal-ai/flux/dev' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-zinc-300">Steps</label>
+                        <span className="text-xs text-zinc-500 font-mono">{numInferenceSteps}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="1" max="50" step="1" 
+                        value={numInferenceSteps} 
+                        onChange={(e) => setNumInferenceSteps(parseInt(e.target.value))}
+                        disabled={isGenerating}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-300">Negative Prompt</label>
+                  <Textarea
+                    placeholder="Elements to exclude..."
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                    className="min-h-[80px] resize-none bg-zinc-950 border-zinc-800 focus-visible:ring-zinc-700 placeholder:text-zinc-700"
+                    disabled={isGenerating}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

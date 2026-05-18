@@ -10,7 +10,7 @@ export class FalProviderError extends Error {
   }
 }
 
-export async function generateImage(prompt: string, model: string): Promise<{ imageUrl: string }> {
+export async function generateImage(prompt: string, model: string, settings: Record<string, any> = {}): Promise<{ imageUrl: string }> {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [FAL] Starting image generation for model: ${model}, prompt: "${prompt}"`);
 
@@ -18,6 +18,7 @@ export async function generateImage(prompt: string, model: string): Promise<{ im
     const result = await fal.subscribe(model as any, {
       input: {
         prompt,
+        ...settings,
       },
     });
 

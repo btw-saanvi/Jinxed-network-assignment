@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, model, generationId } = body;
+    const { prompt, model, generationId, settings = {} } = body;
 
     if (!prompt || !model || !generationId) {
       return NextResponse.json(
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const generateImage = hasFalKey ? falGenerateImage : mockGenerateImage;
 
     try {
-      const { imageUrl } = await generateImage(prompt, model);
+      const { imageUrl } = await generateImage(prompt, model, settings);
 
       const { error: updateError } = await supabase
         .from('generations')

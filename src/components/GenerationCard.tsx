@@ -61,6 +61,27 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
     );
   }
 
+  const hasSettings = generation.settings && Object.keys(generation.settings).length > 0;
+  const badges: string[] = [];
+  
+  if (hasSettings) {
+    if (generation.settings.image_size && generation.settings.image_size !== 'square_hd') {
+      badges.push(generation.settings.image_size);
+    }
+    if (generation.settings.guidance_scale && generation.settings.guidance_scale !== 7.5) {
+      badges.push(`gs: ${generation.settings.guidance_scale}`);
+    }
+    if (generation.settings.num_inference_steps && generation.settings.num_inference_steps !== 28) {
+      badges.push(`steps: ${generation.settings.num_inference_steps}`);
+    }
+    if (generation.settings.negative_prompt) {
+      badges.push('has neg prompt');
+    }
+  }
+
+  const tweakSettingsStr = hasSettings ? encodeURIComponent(JSON.stringify(generation.settings)) : '';
+  const tweakUrl = `/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}${tweakSettingsStr ? `&settings=${tweakSettingsStr}` : ''}`;
+
   return (
     <div className="group rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 flex flex-col h-[350px] relative">
       <div className="relative flex-1 bg-zinc-950">
@@ -88,6 +109,17 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
         <p className="text-zinc-200 text-sm font-medium line-clamp-2 leading-snug" title={prompt}>
           {prompt}
         </p>
+        
+        {badges.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {badges.map((badge, i) => (
+              <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 bg-zinc-800/50 border border-zinc-700/50 rounded text-zinc-400">
+                {badge}
+              </span>
+            ))}
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mt-auto pt-1">
           <div className="flex items-center gap-2.5">
             <span className="text-[11px] font-semibold tracking-wide px-2.5 py-1 bg-zinc-800 rounded-md text-zinc-300">
@@ -104,7 +136,7 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
                 Edit
               </button>
             </Link>
-            <Link href={`/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}`}>
+            <Link href={tweakUrl}>
               <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
                 <Settings2 className="w-3.5 h-3.5" />
                 Tweak
