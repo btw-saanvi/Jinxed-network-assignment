@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useGenerateStore } from '@/store/generateStore';
 import { createGeneration } from '@/lib/gallery';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,20 +14,40 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { X, Loader2 } from 'lucide-react';
 
-export default function GeneratePage() {
+function GenerateForm() {
+  const searchParams = useSearchParams();
   const {
     prompt,
     model,
     status,
     resultImage,
+    tweakOf,
     setPrompt,
     setModel,
     setStatus,
     setResultImage,
+    setTweakOf,
   } = useGenerateStore();
 
+  useEffect(() => {
+    const urlPrompt = searchParams.get('prompt');
+    const urlModel = searchParams.get('model');
+    const urlTweakOf = searchParams.get('tweakOf');
+
+    if (urlPrompt) setPrompt(urlPrompt);
+    if (urlModel) setModel(urlModel);
+    if (urlTweakOf) setTweakOf(urlTweakOf);
+  }, [searchParams, setPrompt, setModel, setTweakOf]);
+
   const isGenerating = status === 'pending';
+
+  const handleClearTweak = () => {
+    setTweakOf(null);
+    // clear the search params from the url
+    window.history.replaceState({}, '', '/');
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -38,7 +60,7 @@ export default function GeneratePage() {
       setResultImage(null);
 
       // 1. Call createGeneration() to insert pending DB row
-      const generationId = await createGeneration(prompt, model);
+      const generationId = await createGeneration(prompt, model, {}, tweakOf);
 
       // 2. POST to /api/generate
       const response = await fetch('/api/generate', {
@@ -57,6 +79,9 @@ export default function GeneratePage() {
       setResultImage(data.imageUrl);
       setStatus('done');
       toast.success('Image generated successfully!');
+      
+      // Optionally clear tweak status on success if desired, but we can leave it
+      // so users can repeatedly tweak the same original.
     } catch (error: any) {
       console.error(error);
       setStatus('failed');
@@ -73,6 +98,22 @@ export default function GeneratePage() {
             Create stunning images from text prompts using advanced AI models.
           </p>
         </div>
+
+        {tweakOf && (
+          <div className="bg-blue-950/40 border border-blue-900/50 text-blue-300 px-4 py-3 rounded-lg flex items-center justify-between shadow-lg shadow-blue-900/10">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+              <span className="text-sm font-medium">Tweaking a previous generation</span>
+            </div>
+            <button 
+              onClick={handleClearTweak} 
+              className="p-1 hover:bg-blue-900/50 rounded-md transition-colors"
+              title="Clear tweak"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="space-y-4 bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
           <div className="space-y-2">
@@ -117,26 +158,7 @@ export default function GeneratePage() {
               >
                 {isGenerating ? (
                   <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-zinc-950"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin text-zinc-950" />
                     Generating...
                   </>
                 ) : (
@@ -163,5 +185,17 @@ export default function GeneratePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 text-zinc-50 p-6 md:p-12 flex justify-center mt-20">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    }>
+      <GenerateForm />
+    </Suspense>
   );
 }

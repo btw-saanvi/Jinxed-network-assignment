@@ -4,7 +4,8 @@ import { Generation } from '@/types/generation';
 export async function createGeneration(
   prompt: string,
   model: string,
-  settings: Record<string, any> = {}
+  settings: Record<string, any> = {},
+  tweakOf?: string | null
 ): Promise<string> {
   const { data, error } = await supabase
     .from('generations')
@@ -14,6 +15,7 @@ export async function createGeneration(
         model,
         settings,
         status: 'pending',
+        tweak_of: tweakOf || null,
       },
     ])
     .select('id')

@@ -3,6 +3,7 @@
 import { Generation } from '@/types/generation';
 import { Loader2, AlertCircle, Trash2, Settings2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface GenerationCardProps {
   generation: Generation;
@@ -96,10 +97,12 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
               {getRelativeTime(created_at)}
             </span>
           </div>
-          <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
-            <Settings2 className="w-3.5 h-3.5" />
-            Tweak
-          </button>
+          <Link href={`/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}`}>
+            <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
+              <Settings2 className="w-3.5 h-3.5" />
+              Tweak
+            </button>
+          </Link>
         </div>
       </div>
     </div>
