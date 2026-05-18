@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getGeneration } from '@/lib/gallery';
 import { Generation } from '@/types/generation';
 import { toast } from 'sonner';
-import { Loader2, Type, Download, ChevronLeft } from 'lucide-react';
+import { Loader2, Type, Download, ChevronLeft, Trash2 } from 'lucide-react';
 import * as fabric from 'fabric';
 import Link from 'next/link';
 
@@ -23,9 +23,9 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
   // Tools state
   const [textInput, setTextInput] = useState('');
   const [fontSize, setFontSize] = useState(36);
-  const [textColor, setTextColor] = useState('#ffffff');
+  const [textColor, setTextColor] = useState('#1a1a2e');
   
-  const COLORS = ['#ffffff', '#000000', '#ef4444', '#3b82f6', '#eab308'];
+  const COLORS = ['#1a1a2e', '#7c3aed', '#3b82f6', '#10b981', '#eab308', '#ef4444', '#ffffff'];
 
   useEffect(() => {
     async function loadData() {
@@ -33,13 +33,13 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
         const data = await getGeneration(id);
         if (data.status !== 'done' || !data.image_url) {
           toast.error('Image not ready for editing');
-          router.push('/gallery');
+          router.push('/');
           return;
         }
         setGeneration(data);
       } catch {
         toast.error('Failed to load generation');
-        router.push('/gallery');
+        router.push('/');
       } finally {
         setIsLoading(false);
       }
@@ -54,7 +54,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
-      backgroundColor: '#18181b', // zinc-900
+      backgroundColor: '#ffffff',
     });
     
     fabricCanvasRef.current = canvas;
@@ -75,8 +75,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           
           // scale to fit within bounds
           const scale = Math.min(
-            (canvasWidth * 0.9) / img.width!,
-            (canvasHeight * 0.9) / img.height!
+            (canvasWidth * 0.95) / img.width!,
+            (canvasHeight * 0.95) / img.height!
           );
           
           img.scale(scale);
@@ -85,7 +85,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           img.set({
             left: (canvasWidth - img.width! * scale) / 2,
             top: (canvasHeight - img.height! * scale) / 2,
-            selectable: false, // Background image usually shouldn't be movable, but let's allow it or not? Let's make it fixed background.
+            selectable: false,
             evented: false,
           });
           
@@ -127,6 +127,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           activeObjects.forEach((obj) => canvas.remove(obj));
           canvas.discardActiveObject();
           canvas.renderAll();
+          toast.success('Selected overlay deleted.');
         }
       }
     };
@@ -149,15 +150,15 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
     const text = new FabricText(textInput, {
       left: (canvas.width || 800) / 2,
       top: (canvas.height || 600) / 2,
-      fontFamily: 'sans-serif',
+      fontFamily: 'system-ui, sans-serif',
       fontSize: fontSize,
       fill: textColor,
       originX: 'center',
       originY: 'center',
       transparentCorners: false,
-      cornerColor: '#3b82f6',
+      cornerColor: '#7c3aed',
       cornerStyle: 'circle',
-      borderColor: '#3b82f6',
+      borderColor: '#7c3aed',
       cornerSize: 10,
     });
     
@@ -165,6 +166,21 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
     canvas.setActiveObject(text);
     canvas.renderAll();
     setTextInput('');
+    toast.success('Added text overlay to canvas!');
+  };
+
+  const handleClearSelected = () => {
+    if (!fabricCanvasRef.current) return;
+    const canvas = fabricCanvasRef.current;
+    const activeObjects = canvas.getActiveObjects();
+    if (activeObjects.length) {
+      activeObjects.forEach((obj) => canvas.remove(obj));
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      toast.success('Deleted selection.');
+    } else {
+      toast.error('Please select an overlay object to delete.');
+    }
   };
 
   const handleExport = () => {
@@ -174,17 +190,17 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
         quality: 1,
-        multiplier: 1 // We can increase this for higher res
+        multiplier: 2 // Export at higher double resolution
       });
       
       const link = document.createElement('a');
-      link.download = `genstudio-${generation?.id}.png`;
+      link.download = `genstudio-masterpiece-${generation?.id}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      toast.success('Image exported successfully!');
+      toast.success('Masterpiece exported successfully as high-res PNG!');
     } catch {
       toast.error('Failed to export. This can happen with cross-origin images.');
     }
@@ -192,8 +208,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-zinc-50">
-        <Loader2 className="w-12 h-12 text-zinc-500 animate-spin" />
+      <div className="min-h-screen bg-[#f0f0f8] flex flex-col items-center justify-center">
+        <Loader2 className="w-12 h-12 text-purple-600 animate-spin" />
       </div>
     );
   }
@@ -201,49 +217,54 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
   if (!generation) return null;
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-zinc-950 text-zinc-50">
+    <div className="flex flex-col h-screen bg-[#f0f0f8] text-[#1a1a2e] font-sans overflow-hidden">
       {/* Header bar */}
-      <div className="border-b border-zinc-800 bg-zinc-900/50 p-4 flex items-center justify-between">
+      <div className="border-b border-[#e6e6f2] bg-white px-6 py-4 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-4">
-          <Link href="/gallery" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">
+          <Link href="/" className="text-purple-600 hover:text-purple-700 transition-colors flex items-center gap-1 font-bold text-sm">
             <ChevronLeft className="w-4 h-4" />
-            Back
+            Back to Studio
           </Link>
-          <div className="h-4 w-px bg-zinc-800"></div>
-          <h1 className="font-semibold text-lg truncate max-w-sm">Editing Image</h1>
+          <div className="h-4 w-px bg-zinc-200"></div>
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-sm tracking-tight text-[#1a1a2e]">Canvas Editor</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">High-Res</span>
+          </div>
         </div>
         <button 
           onClick={handleExport}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm"
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-full font-bold transition-all shadow-md shadow-purple-500/20 hover:shadow-lg text-xs"
         >
-          <Download className="w-4 h-4" />
-          Export PNG
+          <Download className="w-4 h-4 text-white" />
+          Export Masterpiece
         </button>
       </div>
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         {/* Canvas Area */}
-        <div className="flex-1 bg-zinc-950 relative overflow-hidden flex items-center justify-center p-4 lg:p-8" ref={containerRef}>
-          <canvas ref={canvasRef} className="rounded-lg shadow-2xl border border-zinc-800" />
+        <div className="flex-1 bg-[#f0f0f8] relative overflow-hidden flex items-center justify-center p-6 lg:p-12" ref={containerRef}>
+          <div className="w-full h-full flex items-center justify-center bg-white rounded-3xl border border-[#e6e6f2] shadow-xl shadow-purple-900/5 overflow-hidden p-6">
+            <canvas ref={canvasRef} className="rounded-xl shadow-inner border border-zinc-100" />
+          </div>
         </div>
 
         {/* Tools Sidebar */}
-        <div className="w-full lg:w-80 bg-zinc-900 border-t lg:border-t-0 lg:border-l border-zinc-800 p-6 flex flex-col gap-8 overflow-y-auto shrink-0">
-          <div>
-            <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <Type className="w-5 h-5 text-blue-500" />
-              Text Overlay
+        <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-[#e6e6f2] p-6 flex flex-col gap-6 overflow-y-auto shrink-0 z-10 shadow-lg shadow-purple-900/5 justify-between">
+          <div className="space-y-6">
+            <h2 className="text-md font-extrabold flex items-center gap-2 text-[#1a1a2e]">
+              <Type className="w-4.5 h-4.5 text-purple-600" />
+              Text Overlays
             </h2>
             
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Content</label>
+                <label className="text-[11px] font-bold text-zinc-400 tracking-wider block">TEXT OVERLAY CONTENT</label>
                 <input
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="Enter text..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-100"
+                  placeholder="Type overlay text here..."
+                  className="w-full bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl px-4 py-3 text-sm placeholder:text-zinc-400 text-zinc-800"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddText();
                   }}
@@ -251,27 +272,28 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Font Size</label>
+                <label className="text-[11px] font-bold text-zinc-400 tracking-wider block">FONT SIZE PRESETS</label>
                 <select
                   value={fontSize}
                   onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-100"
+                  className="w-full bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl px-4 py-3 text-sm text-zinc-800 font-medium"
                 >
-                  <option value={16}>Small (16px)</option>
-                  <option value={24}>Medium (24px)</option>
-                  <option value={36}>Large (36px)</option>
-                  <option value={48}>X-Large (48px)</option>
+                  <option value={16}>Tiny (16px)</option>
+                  <option value={24}>Small (24px)</option>
+                  <option value={36}>Standard (36px)</option>
+                  <option value={48}>Large (48px)</option>
+                  <option value={72}>Giant (72px)</option>
                 </select>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Color</label>
-                <div className="flex gap-2">
+                <label className="text-[11px] font-bold text-zinc-400 tracking-wider block">PALETTE SWATCHES</label>
+                <div className="flex flex-wrap gap-2">
                   {COLORS.map((color) => (
                     <button
                       key={color}
                       onClick={() => setTextColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${textColor === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-zinc-700 hover:border-zinc-500'}`}
+                      className={`w-7 h-7 rounded-full border transition-all ${textColor === color ? 'ring-2 ring-purple-600 scale-110 shadow-sm' : 'border-zinc-200 hover:border-zinc-300'}`}
                       style={{ backgroundColor: color }}
                       title={color}
                     />
@@ -279,19 +301,29 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                 </div>
               </div>
               
-              <button
-                onClick={handleAddText}
-                disabled={!textInput.trim()}
-                className="w-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-md font-medium transition-colors text-sm"
-              >
-                Add Text
-              </button>
+              <div className="pt-2 space-y-2">
+                <button
+                  onClick={handleAddText}
+                  disabled={!textInput.trim()}
+                  className="w-full bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed text-purple-700 py-3 rounded-xl font-bold transition-all text-xs border border-purple-100"
+                >
+                  Add Overlay Object
+                </button>
+                
+                <button
+                  onClick={handleClearSelected}
+                  className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3 rounded-xl font-bold transition-all text-xs border border-red-100 flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected
+                </button>
+              </div>
             </div>
           </div>
           
-          <div className="mt-auto pt-6 border-t border-zinc-800">
-            <p className="text-xs text-zinc-500 text-center">
-              Select text on canvas to drag, resize, or rotate. Use delete key to remove.
+          <div className="pt-6 border-t border-[#e6e6f2]">
+            <p className="text-[10px] text-zinc-400 text-center leading-relaxed">
+              Select any overlay on the canvas to drag, scale, or rotate it. Tap Backspace or click Delete to remove selected overlays.
             </p>
           </div>
         </div>
