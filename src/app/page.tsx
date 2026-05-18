@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useGenerateStore } from '@/store/generateStore';
 import { createGeneration } from '@/lib/gallery';
@@ -57,8 +57,8 @@ function GenerateForm() {
         if (urlSettings.guidance_scale) setGuidanceScale(urlSettings.guidance_scale);
         if (urlSettings.num_inference_steps) setNumInferenceSteps(urlSettings.num_inference_steps);
         if (urlSettings.negative_prompt) setNegativePrompt(urlSettings.negative_prompt);
-      } catch (e) {
-        console.error('Failed to parse settings from URL');
+      } catch {
+        // silently ignore parse failures
       }
     }
   }, [searchParams, setPrompt, setModel, setTweakOf, setImageSize, setGuidanceScale, setNumInferenceSteps, setNegativePrompt]);
@@ -80,7 +80,7 @@ function GenerateForm() {
       setStatus('pending');
       setResultImage(null);
 
-      const settings: Record<string, any> = {
+      const settings: Record<string, unknown> = {
         image_size: imageSize,
         guidance_scale: guidanceScale,
       };
@@ -110,10 +110,10 @@ function GenerateForm() {
       setResultImage(data.imageUrl);
       setStatus('done');
       toast.success('Image generated successfully!');
-    } catch (error: any) {
-      console.error(error);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       setStatus('failed');
-      toast.error(error.message || 'An unexpected error occurred.');
+      toast.error(err.message || 'An unexpected error occurred.');
     }
   };
 
@@ -165,7 +165,7 @@ function GenerateForm() {
               </label>
               <Select
                 value={model}
-                onValueChange={setModel}
+                onValueChange={(v) => v && setModel(v)}
                 disabled={isGenerating}
               >
                 <SelectTrigger id="model" className="bg-zinc-950 border-zinc-800 focus:ring-zinc-700">
@@ -212,7 +212,7 @@ function GenerateForm() {
                     <label className="text-sm font-medium text-zinc-300">Image Size</label>
                     <Select
                       value={imageSize}
-                      onValueChange={setImageSize}
+                      onValueChange={(v) => v && setImageSize(v)}
                       disabled={isGenerating}
                     >
                       <SelectTrigger className="bg-zinc-950 border-zinc-800 focus:ring-zinc-700">
@@ -283,7 +283,7 @@ function GenerateForm() {
                 className="w-full h-auto object-cover max-h-[70vh]"
               />
               <div className="p-4 bg-zinc-900 border-t border-zinc-800">
-                <p className="text-zinc-300 text-sm font-medium">"{prompt}"</p>
+                <p className="text-zinc-300 text-sm font-medium">{"\""}{prompt}{"\""}</p>
               </div>
             </div>
           </div>

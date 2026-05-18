@@ -6,7 +6,7 @@ export interface Generation {
   model: string;
   image_url: string | null;
   status: GenerationStatus;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   tweak_of: string | null;
   created_at: string;
 }

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ imageUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const { error: updateError } = await supabase
         .from('generations')
         .update({ status: 'failed' })
@@ -42,12 +42,13 @@ export async function POST(request: Request) {
         console.error('Failed to update generation status to failed:', updateError);
       }
 
+      const err = error as { message?: string };
       return NextResponse.json(
-        { error: error.message || 'Image generation failed' },
+        { error: err.message || 'Image generation failed' },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unhandled API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

@@ -1,4 +1,5 @@
-export async function generateImage(prompt: string, model: string, settings: Record<string, any> = {}): Promise<{ imageUrl: string }> {
+export async function generateImage(prompt: string, model: string, _settings: Record<string, unknown> = {}): Promise<{ imageUrl: string }> {
+  void _settings;
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [MOCK] Starting image generation for model: ${model}, prompt: "${prompt}"`);
 

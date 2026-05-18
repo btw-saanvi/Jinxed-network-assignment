@@ -37,7 +37,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           return;
         }
         setGeneration(data);
-      } catch (error) {
+      } catch {
         toast.error('Failed to load generation');
         router.push('/gallery');
       } finally {
@@ -66,8 +66,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
         imgElement.src = generation.image_url!;
         
         imgElement.onload = () => {
-          // @ts-ignore
-          const img = new (fabric.FabricImage || fabric.Image)(imgElement);
+          const FabricImage = ((fabric as unknown as { FabricImage?: new (el: HTMLImageElement) => fabric.Image }).FabricImage || (fabric as unknown as { Image?: new (el: HTMLImageElement) => fabric.Image }).Image) as new (el: HTMLImageElement) => fabric.Image;
+          const img = new FabricImage(imgElement);
           
           // Calculate scale to fit canvas
           const canvasWidth = canvas.width || 800;
@@ -90,11 +90,10 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           });
           
           canvas.add(img);
-          canvas.sendToBack(img);
+          canvas.sendObjectToBack(img);
           canvas.renderAll();
         };
-      } catch (e) {
-        console.error('Failed to load image into canvas:', e);
+      } catch {
         toast.error('Failed to load image for editing');
       }
     };
@@ -108,8 +107,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
       const newWidth = containerRef.current.clientWidth;
       const newHeight = containerRef.current.clientHeight;
       
-      fabricCanvasRef.current.setWidth(newWidth);
-      fabricCanvasRef.current.setHeight(newHeight);
+      fabricCanvasRef.current.width = newWidth;
+      fabricCanvasRef.current.height = newHeight;
       fabricCanvasRef.current.renderAll();
     };
 
@@ -146,8 +145,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
 
     const canvas = fabricCanvasRef.current;
     
-    // @ts-ignore
-    const text = new (fabric.IText || fabric.Text)(textInput, {
+    const FabricText = ((fabric as unknown as { IText?: new (t: string, opts?: Record<string, unknown>) => fabric.IText }).IText || (fabric as unknown as { Text?: new (t: string, opts?: Record<string, unknown>) => fabric.Text }).Text) as new (t: string, opts?: Record<string, unknown>) => fabric.IText;
+    const text = new FabricText(textInput, {
       left: (canvas.width || 800) / 2,
       top: (canvas.height || 600) / 2,
       fontFamily: 'sans-serif',
@@ -186,8 +185,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
       document.body.removeChild(link);
       
       toast.success('Image exported successfully!');
-    } catch (e) {
-      console.error(e);
+    } catch {
       toast.error('Failed to export. This can happen with cross-origin images.');
     }
   };

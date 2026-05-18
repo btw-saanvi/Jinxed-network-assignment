@@ -41,7 +41,7 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
           <Loader2 className="w-8 h-8 text-zinc-500 animate-spin" />
         </div>
         <div className="p-4 border-t border-zinc-800 bg-zinc-950/30">
-          <p className="text-zinc-500 text-sm line-clamp-2 font-medium">"{prompt}"</p>
+          <p className="text-zinc-500 text-sm line-clamp-2 font-medium">{"\""}{prompt}{"\""}</p>
           <div className="mt-3 flex items-center gap-2">
             <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
             <span className="text-sm font-semibold text-blue-500">Generating...</span>
@@ -57,7 +57,7 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
           <AlertCircle className="w-10 h-10 text-red-500" />
           <p className="text-red-400 font-semibold text-lg">Generation failed</p>
-          <p className="text-red-300/70 text-sm line-clamp-3">"{prompt}"</p>
+          <p className="text-red-300/70 text-sm line-clamp-3">{"\""}{prompt}{"\""}</p>
           <Link href={tweakUrl}>
             <button className="mt-2 px-6 py-2.5 bg-red-950/50 hover:bg-red-900 text-red-400 text-sm font-semibold rounded-lg transition-colors border border-red-900/50 flex items-center gap-2">
               Retry
@@ -71,16 +71,17 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
   const badges: string[] = [];
   
   if (hasSettings) {
-    if (generation.settings.image_size && generation.settings.image_size !== 'square_hd') {
-      badges.push(generation.settings.image_size);
+    const settings = generation.settings as Record<string, string | number | boolean | undefined>;
+    if (settings.image_size && settings.image_size !== 'square_hd') {
+      badges.push(settings.image_size as string);
     }
-    if (generation.settings.guidance_scale && generation.settings.guidance_scale !== 7.5) {
-      badges.push(`gs: ${generation.settings.guidance_scale}`);
+    if (settings.guidance_scale && settings.guidance_scale !== 7.5) {
+      badges.push(`gs: ${settings.guidance_scale}`);
     }
-    if (generation.settings.num_inference_steps && generation.settings.num_inference_steps !== 28) {
-      badges.push(`steps: ${generation.settings.num_inference_steps}`);
+    if (settings.num_inference_steps && settings.num_inference_steps !== 28) {
+      badges.push(`steps: ${settings.num_inference_steps}`);
     }
-    if (generation.settings.negative_prompt) {
+    if (settings.negative_prompt) {
       badges.push('has neg prompt');
     }
   }

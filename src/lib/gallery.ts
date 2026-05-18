@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export async function createGeneration(
   prompt: string,
   model: string,
-  settings: Record<string, any> = {},
+  settings: Record<string, unknown> = {},
   tweakOf?: string | null
 ): Promise<string> {
   try {
@@ -27,9 +27,9 @@ export async function createGeneration(
     if (!data) throw new Error('No data returned from Supabase');
 
     return data.id;
-  } catch (error: any) {
-    console.error('Create generation error:', error);
-    if (typeof window !== 'undefined') toast.error(`Database error: ${error.message || 'Failed to save generation'}`);
+  } catch (error: unknown) {
+    const err = error as Error;
+    if (typeof window !== 'undefined') toast.error(`Database error: ${err.message || 'Failed to save generation'}`);
     throw error;
   }
 }
@@ -43,9 +43,9 @@ export async function getGenerations(): Promise<Generation[]> {
 
     if (error) throw error;
     return data as Generation[];
-  } catch (error: any) {
-    console.error('Fetch generations error:', error);
-    if (typeof window !== 'undefined') toast.error(`Database error: ${error.message || 'Failed to fetch gallery'}`);
+  } catch (error: unknown) {
+    const err = error as Error;
+    if (typeof window !== 'undefined') toast.error(`Database error: ${err.message || 'Failed to fetch gallery'}`);
     throw error;
   }
 }
@@ -62,9 +62,9 @@ export async function getGeneration(id: string): Promise<Generation> {
     if (!data) throw new Error(`Generation with ID ${id} not found`);
 
     return data as Generation;
-  } catch (error: any) {
-    console.error('Fetch generation error:', error);
-    if (typeof window !== 'undefined') toast.error(`Database error: ${error.message || 'Failed to fetch generation'}`);
+  } catch (error: unknown) {
+    const err = error as Error;
+    if (typeof window !== 'undefined') toast.error(`Database error: ${err.message || 'Failed to fetch generation'}`);
     throw error;
   }
 }
@@ -77,9 +77,9 @@ export async function deleteGeneration(id: string): Promise<void> {
       .eq('id', id);
 
     if (error) throw error;
-  } catch (error: any) {
-    console.error('Delete generation error:', error);
-    if (typeof window !== 'undefined') toast.error(`Database error: ${error.message || 'Failed to delete generation'}`);
+  } catch (error: unknown) {
+    const err = error as Error;
+    if (typeof window !== 'undefined') toast.error(`Database error: ${err.message || 'Failed to delete generation'}`);
     throw error;
   }
 }

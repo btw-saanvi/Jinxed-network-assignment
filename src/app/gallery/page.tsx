@@ -15,8 +15,8 @@ export default function GalleryPage() {
     try {
       const data = await getGenerations();
       setGenerations(data);
-    } catch (error) {
-      console.error(error);
+    } catch {
+
       // We don't want to spam toast errors on auto-refresh if it fails silently
     } finally {
       setIsLoading(false);
@@ -38,8 +38,8 @@ export default function GalleryPage() {
     try {
       await deleteGeneration(id);
       toast.success('Generation deleted');
-    } catch (error) {
-      console.error(error);
+    } catch {
+
       toast.error('Failed to delete generation');
       fetchGenerations();
     }

@@ -10,12 +10,12 @@ export class FalProviderError extends Error {
   }
 }
 
-export async function generateImage(prompt: string, model: string, settings: Record<string, any> = {}): Promise<{ imageUrl: string }> {
+export async function generateImage(prompt: string, model: string, settings: Record<string, unknown> = {}): Promise<{ imageUrl: string }> {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [FAL] Starting image generation for model: ${model}, prompt: "${prompt}"`);
 
   try {
-    const result = await fal.subscribe(model as any, {
+    const result = await fal.subscribe(model as Parameters<typeof fal.subscribe>[0], {
       input: {
         prompt,
         ...settings,
@@ -24,7 +24,7 @@ export async function generateImage(prompt: string, model: string, settings: Rec
 
     // The shape of result depends on the model, but generally includes an 'images' array.
     // We assume the standard return format for fal.ai flux/schnell models.
-    const imageUrl = result.data?.images?.[0]?.url;
+    const imageUrl = (result.data as { images?: { url: string }[] })?.images?.[0]?.url;
 
     if (!imageUrl) {
       throw new FalProviderError('No image URL returned from provider', 'NO_IMAGE_RETURNED');
@@ -34,7 +34,7 @@ export async function generateImage(prompt: string, model: string, settings: Rec
     console.log(`[${successTimestamp}] [FAL] Successfully generated image for model: ${model}`);
 
     return { imageUrl };
-  } catch (error: any) {
+  } catch (error: unknown) {
     const failureTimestamp = new Date().toISOString();
     console.error(`[${failureTimestamp}] [FAL] Failed to generate image:`, error);
     
@@ -42,9 +42,10 @@ export async function generateImage(prompt: string, model: string, settings: Rec
       throw error;
     }
     
+    const err = error as { message?: string; code?: string };
     throw new FalProviderError(
-      error.message || 'Unknown error occurred during image generation',
-      error.code || 'UNKNOWN_ERROR'
+      err.message || 'Unknown error occurred during image generation',
+      err.code || 'UNKNOWN_ERROR'
     );
   }
 }
