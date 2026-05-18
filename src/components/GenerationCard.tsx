@@ -1,7 +1,7 @@
 'use client';
 
 import { Generation } from '@/types/generation';
-import { Loader2, AlertCircle, Trash2, Settings2, Edit2 } from 'lucide-react';
+import { Loader2, AlertCircle, Trash2, Settings2, Edit2, Copy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -28,6 +28,11 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
   const { id, prompt, status, image_url, model, created_at } = generation;
 
   const modelBadge = model.includes('schnell') ? 'Flux Schnell' : 'Flux Dev';
+
+  const hasSettings = generation.settings && Object.keys(generation.settings).length > 0;
+  const tweakSettingsStr = hasSettings ? encodeURIComponent(JSON.stringify(generation.settings)) : '';
+  const tweakUrl = `/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}${tweakSettingsStr ? `&settings=${tweakSettingsStr}` : ''}`;
+
   
   if (status === 'pending') {
     return (
@@ -53,15 +58,16 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
           <AlertCircle className="w-10 h-10 text-red-500" />
           <p className="text-red-400 font-semibold text-lg">Generation failed</p>
           <p className="text-red-300/70 text-sm line-clamp-3">"{prompt}"</p>
-          <button className="mt-2 px-6 py-2.5 bg-red-950/50 hover:bg-red-900 text-red-400 text-sm font-semibold rounded-lg transition-colors border border-red-900/50 flex items-center gap-2">
-            Retry
-          </button>
+          <Link href={tweakUrl}>
+            <button className="mt-2 px-6 py-2.5 bg-red-950/50 hover:bg-red-900 text-red-400 text-sm font-semibold rounded-lg transition-colors border border-red-900/50 flex items-center gap-2">
+              Retry
+            </button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  const hasSettings = generation.settings && Object.keys(generation.settings).length > 0;
   const badges: string[] = [];
   
   if (hasSettings) {
@@ -79,8 +85,7 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
     }
   }
 
-  const tweakSettingsStr = hasSettings ? encodeURIComponent(JSON.stringify(generation.settings)) : '';
-  const tweakUrl = `/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}${tweakSettingsStr ? `&settings=${tweakSettingsStr}` : ''}`;
+
 
   return (
     <div className="group rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 flex flex-col h-[350px] relative">
@@ -92,6 +97,8 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
             unoptimized={true}
+            placeholder="blur"
+            blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMyNzI3MmEiLz48L3N2Zz4="
           />
         )}
         <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -106,9 +113,21 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
       </div>
       
       <div className="p-4 bg-zinc-900 border-t border-zinc-800 z-10 flex flex-col gap-3">
-        <p className="text-zinc-200 text-sm font-medium line-clamp-2 leading-snug" title={prompt}>
-          {prompt}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-zinc-200 text-sm font-medium line-clamp-2 leading-snug flex-1" title={prompt}>
+            {prompt}
+          </p>
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(prompt);
+              import('sonner').then(m => m.toast.success("Copied!"));
+            }}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 mt-0.5"
+            title="Copy Prompt"
+          >
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        </div>
         
         {badges.length > 0 && (
           <div className="flex flex-wrap gap-1.5">

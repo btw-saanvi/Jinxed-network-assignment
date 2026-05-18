@@ -47,8 +47,27 @@ export default function GalleryPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8 md:p-12 max-w-7xl mx-auto flex justify-center mt-20">
-        <div className="w-8 h-8 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div>
+      <div className="p-6 md:p-12 max-w-7xl mx-auto">
+        <div className="mb-10 space-y-2">
+          <div className="h-10 w-48 bg-zinc-800 rounded animate-pulse"></div>
+          <div className="h-6 w-96 bg-zinc-800/50 rounded animate-pulse"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 flex flex-col h-[350px]">
+              <div className="flex-1 bg-zinc-800/30 animate-pulse"></div>
+              <div className="p-4 border-t border-zinc-800 space-y-3">
+                <div className="h-4 w-3/4 bg-zinc-800 rounded animate-pulse"></div>
+                <div className="h-4 w-1/2 bg-zinc-800 rounded animate-pulse"></div>
+                <div className="mt-4 flex justify-between">
+                  <div className="h-6 w-20 bg-zinc-800 rounded animate-pulse"></div>
+                  <div className="h-8 w-16 bg-zinc-800 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
