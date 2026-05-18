@@ -1,7 +1,7 @@
 'use client';
 
 import { Generation } from '@/types/generation';
-import { Loader2, AlertCircle, Trash2, Settings2 } from 'lucide-react';
+import { Loader2, AlertCircle, Trash2, Settings2, Edit2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -97,12 +97,20 @@ export function GenerationCard({ generation, onDelete }: GenerationCardProps) {
               {getRelativeTime(created_at)}
             </span>
           </div>
-          <Link href={`/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}`}>
-            <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
-              <Settings2 className="w-3.5 h-3.5" />
-              Tweak
-            </button>
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link href={`/editor/${id}`}>
+              <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            </Link>
+            <Link href={`/?prompt=${encodeURIComponent(prompt)}&model=${encodeURIComponent(model)}&tweakOf=${id}`}>
+              <button className="text-zinc-400 hover:text-white p-2 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-xs font-medium border border-transparent hover:border-zinc-700">
+                <Settings2 className="w-3.5 h-3.5" />
+                Tweak
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
