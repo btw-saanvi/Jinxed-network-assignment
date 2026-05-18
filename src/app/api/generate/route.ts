@@ -16,6 +16,7 @@ export async function POST(request: Request) {
     }
 
     const hasFalKey = !!process.env.FAL_KEY;
+    console.log(`[ROUTE] Selected generation provider: ${hasFalKey ? 'FAL.AI' : 'MOCK (Picsum)'}`);
     const generateImage = hasFalKey ? falGenerateImage : mockGenerateImage;
 
     try {
