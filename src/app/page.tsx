@@ -36,6 +36,15 @@ function GenerateForm() {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
 
+  // Simulated Authentication States
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
   const {
     prompt,
     model,
@@ -164,6 +173,25 @@ function GenerateForm() {
     }
   };
 
+  const handleAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthLoading(true);
+    setTimeout(() => {
+      setIsAuthLoading(false);
+      setIsAuthModalOpen(false);
+      if (authMode === 'login') {
+        setUser({ name: 'Saanvi Garg', email: authEmail });
+        toast.success(`Welcome back, Saanvi Garg!`);
+      } else {
+        setUser({ name: authName || 'New User', email: authEmail });
+        toast.success(`Account created successfully! Welcome to GenStudio, ${authName || 'New User'}.`);
+      }
+      setAuthName('');
+      setAuthEmail('');
+      setAuthPassword('');
+    }, 1000);
+  };
+
   const aspectRatios = [
     { label: '1:1', value: 'square_hd' },
     { label: '16:9', value: 'landscape_hd' },
@@ -203,20 +231,75 @@ function GenerateForm() {
           </span>
         </div>
 
+        {/* Updated Navbar Center Links */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-zinc-500">
-          <a href="#" className="hover:text-purple-600 transition-colors">Features</a>
-          <a href="#" className="hover:text-purple-600 transition-colors">Showcase</a>
-          <a href="#" className="hover:text-purple-600 transition-colors">Pricing</a>
-          <a href="#" className="hover:text-purple-600 transition-colors">Docs</a>
+          <button 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="hover:text-purple-600 transition-colors"
+          >
+            Generate
+          </button>
+          <button 
+            onClick={() => document.getElementById('gallery-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="hover:text-purple-600 transition-colors"
+          >
+            Gallery
+          </button>
         </nav>
 
+        {/* Updated Navbar Authentication Options */}
         <div className="flex items-center gap-4">
-          <button className="text-sm font-bold text-zinc-600 hover:text-purple-600 transition-colors">
-            Sign In
-          </button>
-          <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-full transition-all shadow-md shadow-purple-500/25 hover:shadow-lg hover:shadow-purple-500/35">
-            Get Started
-          </button>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col text-right hidden sm:flex">
+                <span className="text-xs font-bold text-[#1a1a2e]">{user.name}</span>
+                <span className="text-[10px] text-zinc-400 font-medium">{user.email}</span>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-extrabold text-sm shadow-inner relative group cursor-pointer">
+                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                
+                {/* Profile Dropdown Menu */}
+                <div className="absolute right-0 top-full pt-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
+                  <div className="bg-white border border-[#e6e6f2] shadow-xl shadow-purple-900/5 rounded-xl py-2 w-48 text-left">
+                    <div className="px-4 py-2 border-b border-[#e6e6f2]">
+                      <p className="text-xs font-bold text-[#1a1a2e]">{user.name}</p>
+                      <p className="text-[10px] text-zinc-400 font-medium line-clamp-1">{user.email}</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setUser(null);
+                        toast.success('Logged out successfully.');
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-red-50 font-semibold transition-colors mt-1"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button 
+                onClick={() => {
+                  setAuthMode('login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-sm font-bold text-zinc-600 hover:text-purple-600 transition-colors"
+              >
+                Sign In
+              </button>
+              <button 
+                onClick={() => {
+                  setAuthMode('signup');
+                  setIsAuthModalOpen(true);
+                }}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-full transition-all shadow-md shadow-purple-500/25 hover:shadow-lg hover:shadow-purple-500/35"
+              >
+                Get Started
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -440,7 +523,7 @@ function GenerateForm() {
         </section>
 
         {/* Live Studio Gallery */}
-        <section className="max-w-6xl mx-auto space-y-6 pt-6 border-t border-[#e6e6f2]">
+        <section id="gallery-section" className="max-w-6xl mx-auto space-y-6 pt-6 border-t border-[#e6e6f2]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold tracking-wider text-zinc-400">GENERATIVE STUDIO GALLERY</span>
@@ -563,6 +646,114 @@ function GenerateForm() {
           </div>
         </div>
       </footer>
+
+      {/* Login & Signup Modal Overlay */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-[#e6e6f2] shadow-2xl shadow-purple-950/20 max-w-md w-full p-8 relative flex flex-col gap-6 animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button 
+              onClick={() => setIsAuthModalOpen(false)}
+              className="absolute top-6 right-6 p-1.5 hover:bg-[#f0f0f8] hover:text-purple-600 rounded-lg text-zinc-400 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header */}
+            <div className="space-y-1.5 text-center mt-2">
+              <h2 className="text-2xl font-extrabold tracking-tight text-[#1a1a2e]">
+                {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
+              </h2>
+              <p className="text-xs text-zinc-400">
+                {authMode === 'login' 
+                  ? 'Access your high-fidelity generative workspace' 
+                  : 'Start synthesizing your visual assets in real-time'}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {authMode === 'signup' && (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-zinc-500 tracking-wider">FULL NAME</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Enter your name" 
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl text-sm placeholder:text-zinc-400 text-zinc-800"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-zinc-500 tracking-wider">EMAIL ADDRESS</label>
+                <input 
+                  type="email" 
+                  required
+                  placeholder="name@example.com" 
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl text-sm placeholder:text-zinc-400 text-zinc-800"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-zinc-500 tracking-wider">PASSWORD</label>
+                <input 
+                  type="password" 
+                  required
+                  placeholder="••••••••" 
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-xl text-sm placeholder:text-zinc-400 text-zinc-800"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="w-full mt-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-xl transition-all shadow-md shadow-purple-500/25 flex items-center justify-center gap-2"
+              >
+                {isAuthLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <span>{authMode === 'login' ? 'Sign In' : 'Sign Up'}</span>
+                )}
+              </button>
+            </form>
+
+            {/* Toggle footer */}
+            <div className="text-center text-xs text-zinc-500">
+              {authMode === 'login' ? (
+                <span>
+                  Don&apos;t have an account?{' '}
+                  <button 
+                    onClick={() => setAuthMode('signup')}
+                    className="text-purple-600 hover:underline font-bold"
+                  >
+                    Sign Up
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  Already have an account?{' '}
+                  <button 
+                    onClick={() => setAuthMode('login')}
+                    className="text-purple-600 hover:underline font-bold"
+                  >
+                    Sign In
+                  </button>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
