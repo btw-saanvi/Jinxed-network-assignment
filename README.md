@@ -31,8 +31,7 @@ You will need to acquire the following keys and map them inside `.env.local`:
 
 - `NEXT_PUBLIC_SUPABASE_URL`: Your project URL from the Supabase Dashboard -> Settings -> API.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your anon public key from the Supabase Dashboard -> Settings -> API.
-- `FAL_KEY`: Your secret API key from your [fal.ai Dashboard](https://fal.ai/dashboard/keys).
-- `NEXT_PUBLIC_FAL_KEY`: *Optional client-side proxy key for Fal.*
+- `HF_KEY`: Your secret API key / access token from Hugging Face.
 
 ## Architecture Diagram
 
@@ -44,12 +43,12 @@ You will need to acquire the following keys and map them inside `.env.local`:
 |                   | <-------------------- |                   |
 +--------+----------+      Status/URL       +---------+---------+
          |                                            |
-         | Supabase Client                            | fal-serverless
+         | Supabase Client                            | fetch() directly
          v                                            v
 +-------------------+                       +-------------------+
 |                   |                       |                   |
-| Supabase Postgres |                       | fal.ai GPU Cloud  |
-|  (generations DB) |                       |  (Flux Dev/Schnell)|
+| Supabase Postgres |                       | Hugging Face Cloud|
+|  (generations DB) |                       | (SDXL Base 1.0)   |
 |                   |                       |                   |
 +-------------------+                       +-------------------+
 ```
@@ -74,7 +73,7 @@ Deploying GenStudio to Vercel is quick and simple. Follow these steps:
    - In the Vercel project configuration page, add the following Environment Variables:
      - `NEXT_PUBLIC_SUPABASE_URL` (Your Supabase project URL)
      - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Your Supabase anon API key)
-     - `FAL_KEY` (Your fal.ai API key)
+     - `HF_KEY` (Your Hugging Face API token)
    - Click **Deploy** and your app will be live in seconds!
 
 ## Future Technical Planning

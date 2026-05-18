@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateImage as falGenerateImage } from '@/lib/providers/fal';
+import { generateImage as hfGenerateImage } from '@/lib/providers/huggingface';
 import { generateImage as mockGenerateImage } from '@/lib/providers/mock';
 import { supabase } from '@/lib/supabase';
 
@@ -15,9 +15,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const hasFalKey = !!process.env.FAL_KEY;
-    console.log(`[ROUTE] Selected generation provider: ${hasFalKey ? 'FAL.AI' : 'MOCK (Picsum)'}`);
-    const generateImage = hasFalKey ? falGenerateImage : mockGenerateImage;
+    const hasHfKey = !!process.env.HF_KEY;
+    console.log(`[ROUTE] Selected generation provider: ${hasHfKey ? 'Hugging Face' : 'MOCK (Picsum)'}`);
+    const generateImage = hasHfKey ? hfGenerateImage : mockGenerateImage;
 
     try {
       const { imageUrl } = await generateImage(prompt, model, settings);
