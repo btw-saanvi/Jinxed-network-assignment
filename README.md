@@ -48,7 +48,7 @@ You will need to acquire the following keys and map them inside `.env.local`:
 +-------------------+                       +-------------------+
 |                   |                       |                   |
 | Supabase Postgres |                       | Hugging Face Cloud|
-|  (generations DB) |                       | (SDXL Base 1.0)   |
+|  (generations DB) |                       | (FLUX.1-schnell)  |
 |                   |                       |                   |
 +-------------------+                       +-------------------+
 ```
