@@ -24,7 +24,7 @@ export default function ErrorBoundary({
             <AlertTriangle className="w-12 h-12 text-red-500" />
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <h2 className="text-2xl font-bold tracking-tight">Something went wrong</h2>
           <p className="text-zinc-400 text-sm">
@@ -33,7 +33,7 @@ export default function ErrorBoundary({
         </div>
 
         <div className="pt-4 flex justify-center">
-          <Button 
+          <Button
             onClick={() => reset()}
             className="bg-white text-zinc-950 hover:bg-zinc-200 font-semibold gap-2"
           >

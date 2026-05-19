@@ -1,59 +1,76 @@
+// src/app/api/generate/route.ts
 import { NextResponse } from 'next/server';
-import { generateImage as hfGenerateImage } from '@/lib/providers/huggingface';
-import { generateImage as mockGenerateImage } from '@/lib/providers/mock';
 import { supabase } from '@/lib/supabase';
+import { generateImage as hfGenerateImage } from '@/lib/providers/huggingface';
+import { Buffer } from 'buffer';
+export const runtime = 'nodejs';
+import { generateImage as mockGenerateImage } from '@/lib/providers/mock';
 
 export async function POST(request: Request) {
+  const { prompt, model, generationId, settings = {} } = await request.json();
+
+  if (!prompt || !model || !generationId) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  // Choose provider (already done)
+  const generateImage = process.env.HF_KEY ? hfGenerateImage : mockGenerateImage;
+
   try {
-    const body = await request.json();
-    const { prompt, model, generationId, settings = {} } = body;
+    // 1️⃣ Generate image (URL or data‑URI)
+    const { imageUrl } = await generateImage(prompt, model, settings);
+    console.log('Generated image URL:', imageUrl);
 
-    if (!prompt || !model || !generationId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: prompt, model, and generationId are required' },
-        { status: 400 }
-      );
+    // 2️⃣ Convert imageUrl → Buffer (Node‑friendly)
+    let fileBuffer: Buffer;
+    let mimeType = 'image/png';
+    if (imageUrl.startsWith('data:')) {
+      const base64 = imageUrl.split(',')[1];
+      fileBuffer = Buffer.from(base64, 'base64');
+      const mimeMatch = imageUrl.match(/^data:(image\/[^;]+);/);
+      if (mimeMatch) mimeType = mimeMatch[1];
+      console.log('Decoded data‑URI, mime:', mimeType);
+    } else {
+      const resp = await fetch(imageUrl);
+      if (!resp.ok) throw new Error(`Failed to fetch remote image: ${resp.status}`);
+      fileBuffer = Buffer.from(await resp.arrayBuffer());
+      mimeType = resp.headers.get('content-type') ?? mimeType;
+      console.log('Fetched remote image, mime:', mimeType);
     }
 
-    const hasHfKey = !!process.env.HF_KEY;
-    console.log(`[ROUTE] Selected generation provider: ${hasHfKey ? 'Hugging Face' : 'MOCK (Picsum)'}`);
-    const generateImage = hasHfKey ? hfGenerateImage : mockGenerateImage;
+    // 3️⃣ Upload to Supabase Storage
+    const fileName = `gen-${generationId}-${Date.now()}.png`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('generated-images')
+      .upload(fileName, fileBuffer, {
+        upsert: false,
+        contentType: mimeType,
+      });
+    console.log('Upload result:', { uploadData, uploadError });
 
-    try {
-      const { imageUrl } = await generateImage(prompt, model, settings);
+    if (uploadError) throw uploadError;
 
-      const { error: updateError } = await supabase
-        .from('generations')
-        .update({ status: 'done', image_url: imageUrl })
-        .eq('id', generationId);
+    // 4️⃣ Build the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('generated-images')
+      .getPublicUrl(uploadData?.path ?? fileName);
+    console.log('Public URL data:', publicUrlData);
+    const publicUrl = publicUrlData?.publicUrl ?? imageUrl; // fallback to original if something odd
 
-      if (updateError) {
-        console.error('Failed to update generation status to done:', updateError);
-        // We still return the image URL even if the DB update fails, but we log the error.
-      }
+    // 5️⃣ Update the generation row with the public URL
+    const { error: updateError } = await supabase
+      .from('generations')
+      .update({ status: 'done', image_url: publicUrl })
+      .eq('id', generationId);
 
-      return NextResponse.json({ imageUrl });
-    } catch (error: unknown) {
-      const { error: updateError } = await supabase
-        .from('generations')
-        .update({ status: 'failed' })
-        .eq('id', generationId);
+    if (updateError) throw updateError;
 
-      if (updateError) {
-        console.error('Failed to update generation status to failed:', updateError);
-      }
-
-      const err = error as { message?: string };
-      return NextResponse.json(
-        { error: err.message || 'Image generation failed' },
-        { status: 500 }
-      );
-    }
-  } catch (error: unknown) {
-    console.error('Unhandled API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ imageUrl: publicUrl });
+  } catch (err: unknown) {
+    console.error('Generation error:', err);
+    // On failure, mark generation as failed
+    await supabase.from('generations').update({ status: 'failed' }).eq('id', generationId);
+    const e = err as { message?: string };
+    return NextResponse.json({ error: e.message || 'Image generation failed' }, { status: 500 });
   }
 }

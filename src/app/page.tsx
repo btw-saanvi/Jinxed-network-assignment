@@ -26,7 +26,8 @@ import {
   Image as ImageIcon,
   Flame,
   Trees,
-  Laptop
+  Laptop,
+  Download
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -457,7 +458,35 @@ function GenerateForm() {
           <div className="p-8 flex flex-col gap-6 bg-zinc-50/50 justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold tracking-wider text-zinc-400">STUDIO CANVAS</span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">latest</span>
+              <div className="flex items-center gap-2">
+                {resultImage && !isGenerating && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(resultImage);
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.download = `genstudio-${Date.now()}.png`;
+                        link.href = url;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        import('sonner').then(m => m.toast.success('Image downloaded!'));
+                      } catch {
+                        import('sonner').then(m => m.toast.error('Download failed. Right-click the image to save.'));
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-full transition-all shadow-md shadow-purple-500/20"
+                    title="Download generated image"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download
+                  </button>
+                )}
+                <span className="text-[10px] font-semibold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">latest</span>
+              </div>
             </div>
 
             {/* Image Canvas Box */}
@@ -573,27 +602,63 @@ function GenerateForm() {
                           src={gen.image_url}
                           alt={gen.prompt}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const parent = (e.target as HTMLImageElement).parentElement;
+                            if (parent) {
+                              const el = document.createElement('div');
+                              el.className = 'w-full h-full flex flex-col items-center justify-center gap-2 bg-zinc-50';
+                              el.innerHTML = '<svg class="w-8 h-8 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span class="text-[10px] text-zinc-400 font-medium">Image unavailable</span>';
+                              parent.appendChild(el);
+                            }
+                          }}
                         />
                       ) : gen.status === 'failed' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-red-50/50">
-                          <span className="text-xs font-bold text-red-500">Failed</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-red-50/50 gap-2">
+                          <span className="text-xs font-bold text-red-400">Generation Failed</span>
+                          <button
+                            onClick={() => handleDelete(gen.id)}
+                            className="mt-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 text-[10px] font-bold rounded-lg border border-red-100 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : gen.status === 'done' && !gen.image_url ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-zinc-50 gap-2">
+                          <ImageIcon className="w-7 h-7 text-zinc-300" />
+                          <span className="text-[10px] font-bold text-zinc-400">Image missing</span>
+                          <button
+                            onClick={() => handleDelete(gen.id)}
+                            className="mt-1 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 text-[10px] font-bold rounded-lg border border-zinc-200 transition-colors"
+                          >
+                            Remove
+                          </button>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-zinc-50">
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-50 gap-2">
                           <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                          <span className="text-[10px] text-zinc-400 font-medium">Generating...</span>
+                          <button
+                            onClick={() => handleDelete(gen.id)}
+                            className="mt-1 px-3 py-1.5 bg-zinc-100 hover:bg-red-50 hover:text-red-500 text-zinc-400 text-[10px] font-bold rounded-lg border border-zinc-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
                         </div>
                       )}
-                      
-                      {/* Action buttons hover display overlay */}
-                      <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleDelete(gen.id)}
-                          className="p-2 bg-white hover:bg-red-50 hover:text-red-500 text-zinc-500 rounded-lg shadow-sm transition-all border border-[#e6e6f2]"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+
+                      {/* Action buttons hover display overlay — only for cards with images */}
+                      {gen.image_url && (
+                        <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleDelete(gen.id)}
+                            className="p-2 bg-white hover:bg-red-50 hover:text-red-500 text-zinc-500 rounded-lg shadow-sm transition-all border border-[#e6e6f2]"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-4 flex flex-col gap-3 justify-between bg-white border-t border-[#e6e6f2]">
@@ -612,13 +677,15 @@ function GenerateForm() {
                         </div>
 
                         <div className="flex gap-1.5">
-                          <Link href={`/editor/${gen.id}`}>
-                            <button className="p-1.5 text-zinc-500 hover:text-purple-600 transition-colors border border-transparent hover:border-zinc-200 rounded-md bg-zinc-50">
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                          </Link>
+                          {gen.image_url && (
+                            <Link href={`/editor/${gen.id}`}>
+                              <button className="p-1.5 text-zinc-500 hover:text-purple-600 transition-colors border border-transparent hover:border-zinc-200 rounded-md bg-zinc-50" title="Edit in Canvas">
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                            </Link>
+                          )}
                           <Link href={tweakUrl}>
-                            <button className="p-1.5 text-zinc-500 hover:text-purple-600 transition-colors border border-transparent hover:border-zinc-200 rounded-md bg-zinc-50">
+                            <button className="p-1.5 text-zinc-500 hover:text-purple-600 transition-colors border border-transparent hover:border-zinc-200 rounded-md bg-zinc-50" title="Tweak settings">
                               <Settings className="w-3 h-3" />
                             </button>
                           </Link>
